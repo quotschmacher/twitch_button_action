@@ -2,46 +2,52 @@
 //#include <WiFi.h>
 #include <ESP8266WiFi.h>
 #include <IRCClient.h>
+// is ne ganz gute lib fuer buttons. entprellt und hat sonst auch nette features
+#include <OneButton.h>
+// hier sind meine security-einstellungen drin (wlan und twitch)
 #include "security.h"
 
 #define IRC_SERVER   "irc.chat.twitch.tv"
 #define IRC_PORT     6667
 
+#ifndef WLAN_SSID
+#define WLAN_SSID "ssid"
+#endif
+
+#ifndef WLAN_PASS
+#define WLAN_PASS "passwort"
+#endif
+
+#ifndef TWITCH_OAUTH_TOKEN
+#define TWITCH_OAUTH_TOKEN "" // https://twitchapps.com/tmi/
+#endif
+
 char ssid[] = WLAN_SSID;
 char password[] = WLAN_PASS;
 
-unsigned long bandit_last_sent = 0;
-unsigned long bandit_interval = 155000;
+unsigned long step_counter_last_sent = 0;
+unsigned long step_couunter_last_sent_interval = 31000; // millisekunden
+uint8_t step_counter_cnt = 0;
 
 //The name of the channel that you want the bot to join
 const String twitchChannelName = "projektiontv";
 
-//The name that you want the bot to have
-#define TWITCH_BOT_NAME "quotschmacher"
+// he name that you want the bot to have 
+// der twitch username
+#define TWITCH_BOT_NAME "addyourusernamehere"
 
 String ircChannel = "";
 
 WiFiClient wiFiClient;
 IRCClient client(IRC_SERVER, IRC_PORT, wiFiClient);
 
+uint8 stepcounter_button_pin = 1;
 
+OneButton button_step_counter(stepcounter_button_pin, true);
 
-void callback(IRCMessage ircMessage) {
-  //Serial.println("In CallBack");
-
-  if (ircMessage.command == "PRIVMSG" && ircMessage.text[0] != '\001') {
-    //Serial.println("Passed private message.");
-    ircMessage.nick.toUpperCase();
-
-    String message("<" + ircMessage.nick + "> " + ircMessage.text);
-
-    //prints chat to serial
-    Serial.println(message);
-
-
-
-    return;
-  }
+void step_click()
+{
+    step_counter_cnt++;
 }
 
 void setup() {
@@ -52,7 +58,7 @@ void setup() {
     WiFi.disconnect();
     delay(100);
     
-  ircChannel = "#" + twitchChannelName;
+    ircChannel = "#" + twitchChannelName;
 
     // Attempt to connect to Wifi network:
     Serial.print("Connecting Wifi: ");
@@ -68,18 +74,18 @@ void setup() {
     IPAddress ip = WiFi.localIP();
     Serial.println(ip);
 
-  client.setCallback(callback);
+    button_step_counter.attachClick(step_click);
 }
 
 void sendTwitchMessage(String message) {
     client.sendMessage(ircChannel, message);
 }
 
-void sendBanditCommand(unsigned long current_millis) 
+void sendStepCounter(unsigned long mills)
 {
-    Serial.println("Sende Bandit-Command");
-    sendTwitchMessage("!bandit");
-    bandit_last_sent = current_millis;
+    sendTwitchMessage("!stepounter+");
+    step_counter_last_sent = millis();
+    step_counter_cnt--;
 }
 
 void loop() {
@@ -95,7 +101,6 @@ void loop() {
             client.sendRaw("JOIN " + ircChannel);
             Serial.println("connected and ready to rock");
             //sendTwitchMessage("Ready to go Boss!");
-            sendBanditCommand(current_millis);
         } else {
             Serial.println("failed... try again in 5 seconds");
             // Wait 5 seconds before retrying
@@ -105,11 +110,18 @@ void loop() {
     }
     else
     {
-        if ((current_millis - bandit_last_sent) > bandit_interval)
+        if (step_counter_cnt > 0)
         {
-            sendBanditCommand(current_millis);
+            if ((current_millis- step_counter_last_sent) > step_couunter_last_sent_interval)
+            {
+                sendStepCounter(current_millis);
+            }
         }
     }
+
+    // ist mMn ueberfluessig
     // nur zum reagieren auf neue Nachrichten
-    client.loop();
+    //client.loop();
+    
+    button_step_counter.tick();
 }
