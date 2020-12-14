@@ -1,6 +1,6 @@
 #include <Arduino.h>
-//#include <WiFi.h>
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
+//#include <ESP8266WiFi.h>
 #include <IRCClient.h>
 // is ne ganz gute lib fuer buttons. entprellt und hat sonst auch nette features
 #include <OneButton.h>
@@ -46,7 +46,7 @@ String ircChannel = "";
 WiFiClient wiFiClient;
 IRCClient client(IRC_SERVER, IRC_PORT, wiFiClient);
 
-uint8 stepcounter_button_pin = 1;
+uint8_t stepcounter_button_pin = 1;
 
 OneButton button_step_counter(stepcounter_button_pin, true);
 
