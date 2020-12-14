@@ -22,6 +22,11 @@
 #define TWITCH_OAUTH_TOKEN "" // https://twitchapps.com/tmi/
 #endif
 
+// Funktionsprototypen
+void step_click();
+void sendTwitchMessage(String);
+void sendStepCounter();
+
 char ssid[] = WLAN_SSID;
 char password[] = WLAN_PASS;
 
@@ -44,11 +49,6 @@ IRCClient client(IRC_SERVER, IRC_PORT, wiFiClient);
 uint8 stepcounter_button_pin = 1;
 
 OneButton button_step_counter(stepcounter_button_pin, true);
-
-void step_click()
-{
-    step_counter_cnt++;
-}
 
 void setup() {
     Serial.begin(115200);
@@ -77,17 +77,6 @@ void setup() {
     button_step_counter.attachClick(step_click);
 }
 
-void sendTwitchMessage(String message) {
-    client.sendMessage(ircChannel, message);
-}
-
-void sendStepCounter(unsigned long mills)
-{
-    sendTwitchMessage("!stepounter+");
-    step_counter_last_sent = millis();
-    step_counter_cnt--;
-}
-
 void loop() {
     unsigned long current_millis = millis();
     // Try to connect to chat. If it loses connection try again
@@ -114,7 +103,7 @@ void loop() {
         {
             if ((current_millis- step_counter_last_sent) > step_couunter_last_sent_interval)
             {
-                sendStepCounter(current_millis);
+                sendStepCounter();
             }
         }
     }
@@ -124,4 +113,20 @@ void loop() {
     //client.loop();
     
     button_step_counter.tick();
+}
+
+void sendTwitchMessage(String message) {
+    client.sendMessage(ircChannel, message);
+}
+
+void sendStepCounter()
+{
+    sendTwitchMessage("!stepounter+");
+    step_counter_last_sent = millis();
+    step_counter_cnt--;
+}
+
+void step_click()
+{
+    step_counter_cnt++;
 }
